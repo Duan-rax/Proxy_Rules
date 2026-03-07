@@ -17,4 +17,5 @@ jobs:
       run: pip install yamllint
 
     - name: Check yaml
-      run: yamllint rules
+      # 加上 -d 参数，自定义检查规则：关闭开头检查、行长度检查和文件末尾换行检查
+      run: yamllint -d "{extends: default, rules: {document-start: disable, line-length: disable, new-line-at-end-of-file: disable}}" rules

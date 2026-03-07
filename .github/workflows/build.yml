@@ -25,12 +25,10 @@ jobs:
 
           gunzip mihomo.gz
 
-          # 自动找到解压后的文件
           FILE=$(ls mihomo-linux-amd64*)
 
-          mv $FILE mihomo
-          chmod +x mihomo
-          sudo mv mihomo /usr/local/bin/mihomo
+          chmod +x "$FILE"
+          sudo mv "$FILE" /usr/local/bin/mihomo
 
           mihomo -v
 

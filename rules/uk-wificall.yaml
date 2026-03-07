@@ -1,0 +1,14 @@
+payload:
+  # 地区检测 & 3GPP 基础域名 (替代原来的 DOMAIN-KEYWORD,mcc234)
+  - +.gspe1-ssl.ls.apple.com
+  - +.mcc234.3gppnetwork.org
+
+  # 沃达丰 Vodafone
+  - +.entsrv-uk.vodafone.com
+  - +.vuk-gto.prod.ondemandconnectivity.com
+
+  # VOXI (原规则为严格 DOMAIN，加上 +. 兼容性更好)
+  - +.vfgb.idemia.io
+
+  # CTE
+  - +.ee.co.uk

@@ -1,0 +1,25 @@
+name: Publish Release
+
+on:
+  push:
+    paths:
+      - "mrs/**"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: latest
+        name: Latest Rules
+        files: mrs/*.mrs
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

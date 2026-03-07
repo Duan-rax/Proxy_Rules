@@ -1,0 +1,35 @@
+payload:
+  # --- 原始规则改写 ---
+  - +.ateam-oracle.com
+  - +.bronto.com
+  - +.covid19-rx.org
+  - +.covid19rx.org
+  - +.oracle # .oracle 本身也是一个合法的顶级域名
+  - +.oracle.com
+  - +.oraclecloud.com
+  - +.oraclefoundation.org
+  - +.oracleimg.com
+  - +.oracleinfinity.io
+  - +.sun.com
+  - +.bluekai.com
+  - +.eloqua.com
+  - +.eloquaeditors.com
+  - +.eloquapreview.com
+  - +.en25.com
+  - +.odc-addthis-prod-01.oracle.com
+  - +.odc-pixel-prod-01.oracle.com
+  - +.responsys.net
+  - +.a1cbafa5ea9a6480cb8e9ffba46cbad9-466059813.us-west-2.elb.amazonaws.com
+  
+  # --- 修复原有的 KEYWORD 规则 ---
+  - +.addthis.com # 替代 DOMAIN-KEYWORD,addthis
+  - +.java.com    # 替代 DOMAIN-KEYWORD,java
+  
+  # --- 补充的 Oracle 核心及收购业务域名 ---
+  - +.netsuite.com # Oracle NetSuite
+  - +.taleo.net    # Oracle Taleo
+  - +.rightnow.com # Oracle RightNow
+  - +.micros.com   # Oracle Micros
+  - +.dynect.net   # Oracle Dyn DNS
+  - +.dyndns.org   # Oracle Dyn DNS
+  

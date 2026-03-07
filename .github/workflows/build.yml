@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "rules/**"
+  workflow_dispatch: # 建议增加手动触发，方便调试
 
 permissions:
   contents: write
@@ -15,18 +16,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # 必须拉取全部提交历史，否则 git push 可能会失败
+          fetch-depth: 0
 
       - name: Install latest Mihomo
         run: |
-          VERSION=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep tag_name | cut -d '"' -f 4)
-          echo "Latest Mihomo: $VERSION"
+          # 获取不带 v 的版本号用于下载，带 v 的用于 echo
+          VERSION_TAG=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep tag_name | cut -d '"' -f 4)
+          VERSION=${VERSION_TAG#v} # 移除前面的 'v'
+          echo "Latest Mihomo: $VERSION_TAG"
 
-          curl -L https://github.com/MetaCubeX/mihomo/releases/download/$VERSION/mihomo-linux-amd64-v1-$VERSION.gz -o mihomo.gz
+          # 修复下载链接：Mihomo 的 Release 文件名通常包含 v
+          curl -L "https://github.com/MetaCubeX/mihomo/releases/download/${VERSION_TAG}/mihomo-linux-amd64-${VERSION_TAG}.gz" -o mihomo.gz
 
           gunzip mihomo.gz
-
+          # 找到解压后的二进制文件并重命名
           FILE=$(ls mihomo-linux-amd64*)
-
           chmod +x "$FILE"
           sudo mv "$FILE" /usr/local/bin/mihomo
 
@@ -37,28 +43,37 @@ jobs:
 
       - name: Convert rules
         run: |
-          for file in rules/*.yaml; do
-            name=$(basename "$file" .yaml)
+          # 确保 rules 目录下有文件才执行
+          if [ -d "rules" ] && [ "$(ls -A rules/*.yaml 2>/dev/null)" ]; then
+            for file in rules/*.yaml; do
+              name=$(basename "$file" .yaml)
+              echo "Converting $name..."
 
-            if grep -q "IP-CIDR" "$file"; then
-              type="ipcidr"
-            else
-              type="domain"
-            fi
+              # 逻辑修复：判断内容决定类型
+              if grep -q "IP-CIDR" "$file"; then
+                type="ipcidr"
+              else
+                type="domain"
+              fi
 
-            mihomo convert-ruleset $type yaml "$file" "mrs/$name.mrs"
-          done
+              mihomo convert-ruleset $type yaml "$file" "mrs/$name.mrs"
+            done
+          else
+            echo "No yaml files found in rules/ directory."
+          fi
 
       - name: Commit changes
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
           git add mrs/*.mrs
 
+          # 检查是否有变动
           if git diff --cached --quiet; then
-            echo "No changes"
+            echo "No changes to commit"
           else
-            git commit -m "Auto build MRS"
+            git commit -m "chore: Auto build MRS [skip ci]"
+            # 使用默认 GITHUB_TOKEN 推送，Action 已经处理好权限
             git push
           fi

@@ -1,0 +1,14 @@
+# 包含 IP-CIDR 以触发 Action 的 ipcidr 转换逻辑
+payload:
+  # 沃达丰 Vodafone & VOXI
+  - 88.82.0.0/19
+  - 148.252.160.0/19
+
+  # CMLinkUK EE
+  - 46.68.0.0/17
+
+  # Giffgaff
+  - 87.194.0.0/16
+
+  # CTE
+  - 31.94.0.0/16

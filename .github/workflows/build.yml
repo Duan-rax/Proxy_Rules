@@ -4,7 +4,8 @@ on:
   push:
     paths:
       - "rules/**"
-  workflow_dispatch: # 建议增加手动触发，方便调试
+  # 添加手动触发支持
+  workflow_dispatch: 
 
 permissions:
   contents: write
@@ -17,21 +18,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # 必须拉取全部提交历史，否则 git push 可能会失败
-          fetch-depth: 0
+          fetch-depth: 0 # 完整拉取历史，确保 push 成功
 
       - name: Install latest Mihomo
         run: |
-          # 获取不带 v 的版本号用于下载，带 v 的用于 echo
-          VERSION_TAG=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep tag_name | cut -d '"' -f 4)
-          VERSION=${VERSION_TAG#v} # 移除前面的 'v'
-          echo "Latest Mihomo: $VERSION_TAG"
+          # 获取带 v 的版本号 (例如 v1.18.3)
+          VERSION=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep tag_name | cut -d '"' -f 4)
+          echo "Latest Mihomo: $VERSION"
 
-          # 修复下载链接：Mihomo 的 Release 文件名通常包含 v
-          curl -L "https://github.com/MetaCubeX/mihomo/releases/download/${VERSION_TAG}/mihomo-linux-amd64-${VERSION_TAG}.gz" -o mihomo.gz
+          # 修正：Mihomo 的下载链接文件名包含 v
+          curl -L "https://github.com/MetaCubeX/mihomo/releases/download/${VERSION}/mihomo-linux-amd64-${VERSION}.gz" -o mihomo.gz
 
           gunzip mihomo.gz
-          # 找到解压后的二进制文件并重命名
+
+          # 动态获取解压后的文件名并赋权
           FILE=$(ls mihomo-linux-amd64*)
           chmod +x "$FILE"
           sudo mv "$FILE" /usr/local/bin/mihomo
@@ -43,13 +43,13 @@ jobs:
 
       - name: Convert rules
         run: |
-          # 确保 rules 目录下有文件才执行
+          # 检查 rules 目录下是否有 yaml 文件
           if [ -d "rules" ] && [ "$(ls -A rules/*.yaml 2>/dev/null)" ]; then
             for file in rules/*.yaml; do
               name=$(basename "$file" .yaml)
-              echo "Converting $name..."
+              echo "正在转换: $name"
 
-              # 逻辑修复：判断内容决定类型
+              # 自动判断类型
               if grep -q "IP-CIDR" "$file"; then
                 type="ipcidr"
               else
@@ -59,7 +59,8 @@ jobs:
               mihomo convert-ruleset $type yaml "$file" "mrs/$name.mrs"
             done
           else
-            echo "No yaml files found in rules/ directory."
+            echo "错误：rules/ 目录下未发现 .yaml 规则文件"
+            exit 1
           fi
 
       - name: Commit changes
@@ -69,11 +70,10 @@ jobs:
 
           git add mrs/*.mrs
 
-          # 检查是否有变动
           if git diff --cached --quiet; then
-            echo "No changes to commit"
+            echo "没有文件变动，跳过 Commit"
           else
-            git commit -m "chore: Auto build MRS [skip ci]"
-            # 使用默认 GITHUB_TOKEN 推送，Action 已经处理好权限
+            # [skip ci] 必加，防止自动提交再次触发 Action 导致死循环
+            git commit -m "chore: 自动更新 MRS 文件 [skip ci]"
             git push
           fi

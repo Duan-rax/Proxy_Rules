@@ -1,0 +1,20 @@
+name: Lint Rules
+
+on:
+  pull_request:
+  push:
+    paths:
+      - "rules/**"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install yamllint
+      run: pip install yamllint
+
+    - name: Check yaml
+      run: yamllint rules

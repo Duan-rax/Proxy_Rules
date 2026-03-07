@@ -26,16 +26,17 @@ jobs:
           VERSION=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep tag_name | cut -d '"' -f 4)
           echo "Latest Mihomo: $VERSION"
 
-          # 修正：Mihomo 的下载链接文件名包含 v
+          # 下载并强制重命名为 mihomo.gz
           curl -L "https://github.com/MetaCubeX/mihomo/releases/download/${VERSION}/mihomo-linux-amd64-${VERSION}.gz" -o mihomo.gz
 
+          # 解压，生成名为 mihomo 的可执行文件
           gunzip mihomo.gz
 
-          # 动态获取解压后的文件名并赋权
-          FILE=$(ls mihomo-linux-amd64*)
-          chmod +x "$FILE"
-          sudo mv "$FILE" /usr/local/bin/mihomo
+          # 直接对 mihomo 文件赋权并移动
+          chmod +x mihomo
+          sudo mv mihomo /usr/local/bin/
 
+          # 验证安装
           mihomo -v
 
       - name: Create mrs dir
@@ -77,3 +78,4 @@ jobs:
             git commit -m "chore: 自动更新 MRS 文件 [skip ci]"
             git push
           fi
+          

@@ -1,6 +1,5 @@
 payload:
-  - *
-  - *.*.xboxlive.com
+  - +.xboxlive.com
   - +.126.net
   - +.3gppnetwork.org
   - +.battle.net

@@ -4,8 +4,10 @@ on:
   push:
     paths:
       - "rules/**"
+      - ".github/workflows/build.yml"
+      - ".github/workflows/release.yml"
   # 添加手动触发支持
-  workflow_dispatch: 
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -21,22 +23,32 @@ jobs:
           fetch-depth: 0 # 完整拉取历史，确保 push 成功
 
       - name: Install latest Mihomo
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          # 获取带 v 的版本号 (例如 v1.18.3)
-          VERSION=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep tag_name | cut -d '"' -f 4)
-          echo "Latest Mihomo: $VERSION"
+          set -euo pipefail
+          curl_opts=(--fail --silent --show-error --location --http1.1
+                     --connect-timeout 10 --max-time 45
+                     --retry 3 --retry-delay 2 --retry-max-time 120 --retry-all-errors)
 
-          # 下载并强制重命名为 mihomo.gz
-          curl -L "https://github.com/MetaCubeX/mihomo/releases/download/${VERSION}/mihomo-linux-amd64-${VERSION}.gz" -o mihomo.gz
+          release_json=$(curl "${curl_opts[@]}" \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            https://api.github.com/repos/MetaCubeX/mihomo/releases/latest)
+          version=$(jq -er '.tag_name | strings | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))' <<< "$release_json") || { echo "::error::Mihomo release metadata has no valid version"; exit 1; }
+          asset="mihomo-linux-amd64-$version.gz"
+          digest=$(jq -er --arg asset "$asset" \
+            '.assets[] | select(.name == $asset) | .digest | strings | select(test("^sha256:[0-9a-f]{64}$"))' \
+            <<< "$release_json") || { echo "::error::Missing SHA-256 for $asset"; exit 1; }
 
-          # 解压，生成名为 mihomo 的可执行文件
+          echo "Latest Mihomo: $version"
+          curl "${curl_opts[@]}" \
+            "https://github.com/MetaCubeX/mihomo/releases/download/$version/$asset" \
+            --output mihomo.gz
+          printf '%s  mihomo.gz\n' "${digest#sha256:}" | sha256sum --check
           gunzip mihomo.gz
-
-          # 直接对 mihomo 文件赋权并移动
-          chmod +x mihomo
-          sudo mv mihomo /usr/local/bin/
-
-          # 验证安装
+          sudo install -m 0755 mihomo /usr/local/bin/mihomo
           mihomo -v
 
       - name: Create mrs dir
@@ -78,4 +90,12 @@ jobs:
             git commit -m "chore: 自动更新 MRS 文件 [skip ci]"
             git push
           fi
-          
+
+      - name: Upload built MRS
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mrs
+          path: mrs/*.mrs
+          if-no-files-found: error
+          retention-days: 7
